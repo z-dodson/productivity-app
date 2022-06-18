@@ -4,7 +4,9 @@ Simple program with some features to increase productivity such as:
 * To do list
 * Breaks schedular
 * Notes
-*The entries are designed to be able to be easily edited so it works best for you*
+
+**The entries are designed to be able to be easily edited so it works best for you**
+
 I find it quite useful and you might to
 
 ## Setup
