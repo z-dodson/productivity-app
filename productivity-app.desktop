@@ -1,0 +1,10 @@
+
+[Desktop Entry]
+Type=Application
+Name=Productivity-App
+GenericName=Thing
+Comment=Productivity targets, deadlines, eye breaks etc.
+Categories=Development;
+Exec=sh PATH_TO_run.sh_FILE
+Icon=PATH_TO_logo.png_FILE
+terminal=False
