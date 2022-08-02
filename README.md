@@ -7,7 +7,7 @@ Simple program with some features to increase productivity such as:
 
 **The entries are designed to be able to be easily edited so it works best for you**
 
-I find it quite useful and you might to
+I find it quite useful and you might too
 
 ## Setup
 Install python and `PyQt5`
