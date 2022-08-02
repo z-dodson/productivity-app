@@ -13,8 +13,9 @@ from pynput.mouse import Controller
 # These may need editing
 SCREEN_BLANK_COMMAND = "xset dpms force off"
 def notify(title, message="...",t=5): os.system(f"notify-send \"{title}\" \"{message}\"")
-DIRECTORY = ""
+DIRECTORY = "./"
 ######
+def screenBlankFunc(): os.system(SCREEN_BLANK_COMMAND)
 
 SEPERATOR = "<SEP>"
 NOTIFY_TIME = 5
@@ -60,8 +61,8 @@ def notifyTimings():
             TARGETS[0].pop(i); TARGETS[1].pop(i); TARGETS[2].pop(i)
         time.sleep(60)
         
-class breaks():
-    def __init__(self):
+class breaks:
+    def __init__(self) -> None:
         with open(".breaks.txt","r") as f:
             self.breakInterval, self.shortBreak, self.longBreak, self.longBreakFrquency = f.readline().split(SEPERATOR)
             self.breakInterval = int(self.breakInterval)
@@ -78,23 +79,28 @@ class breaks():
         self.longBreakFrquency = longBreakFrquency
         with open(".breaks.txt","w") as f:
             f.write(f"{self.breakInterval}{SEPERATOR}{self.shortBreak}{SEPERATOR}{self.longBreak}{SEPERATOR}{self.longBreakFrquency}")
-
+    def reset(self): self.breaksIndexCounter = 0
     def breaks(self):
         self.running=True
         while self.running:
-            for _ in range(self.longBreakFrquency):
+            self.breaksIndexCounter = 0
+            while self.breaksIndexCounter<self.longBreakFrquency:
+                self.breaksIndexCounter += 1
                 time.sleep(self.breakInterval)
                 notify("Short Break","Look away")
                 time.sleep(NOTIFY_TIME)
                 screenBlank(self.shortBreak)
-                time.sleep(self.shortBreak)
+                time.sleep(1)
                 notify("Short Break Ended")
+                MainWindow.setBreaksProgress(int(round(100*(self.breaksIndexCounter/self.longBreakFrquency))))
+            MainWindow.setBreaksProgress(100)
             time.sleep(self.breakInterval)
             notify("Long Break","Leave the computer")
             time.sleep(NOTIFY_TIME)
             screenBlank(self.longBreak)
-            time.sleep(self.longBreak)
+            time.sleep(1)
             notify("Long Break Ended")
+            MainWindow.setBreaksProgress(0)
     def __del__(self):
         self.running=False
         self.breaksThread.join()
@@ -116,6 +122,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setTimmingsButton.pressed.connect(self.setTimmings)
         self.clearDeadlines_button.pressed.connect(self.clearDeadlines)
         self.addDeadline_button.pressed.connect(self.addDeadlines)
+        self.blankNow_button.pressed.connect(screenBlankFunc)
+        self.recentLongBreak_button.pressed.connect(self.resetBreaks)
+        self.setBreaksProgress(0)
         
         # self.exit=QAction("Exit Application",shortcut=QKeySequence("Ctrl+q"),triggered=lambda:self.exit_app)
         # self.addAction(self.exit)
@@ -127,6 +136,8 @@ class MainWindow(QtWidgets.QMainWindow):
         DEADLINES = [[],[],[]]
         with open("deadlines.txt","w") as _: pass
         self.displayDeadlines()
+    def resetBreaks(self):
+        breaks.reset()
 
     def loadTimmings(self): 
         a,b,c,d = breaks.getTimmings()
@@ -137,7 +148,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def setTimmings(self):
         breaks.setTimmings(self.shortBreak_spinBox.value(),self.longBreak_spinBox.value(),self.breakInterval_spinBox.value(),self.longBreakFrquency_spinBox.value())
 
-        
+    def setBreaksProgress(self,val):
+        self.breaks_progressBar.setValue(val)
     def addTarget(self):
         if(self.targetTitle_input.text().strip()!=""):
             TARGETS[0].append(self.targetTitle_input.text())
