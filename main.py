@@ -86,7 +86,9 @@ class breaks:
             self.breaksIndexCounter = 0
             while self.breaksIndexCounter<self.longBreakFrquency:
                 self.breaksIndexCounter += 1
-                time.sleep(self.breakInterval)
+                for i in range(self.breakInterval):
+                    time.sleep(1)
+                    MainWindow.setTimeProgress(int(round(10000*(i/self.breakInterval))))
                 notify("Short Break","Look away")
                 time.sleep(NOTIFY_TIME)
                 screenBlank(self.shortBreak)
@@ -150,6 +152,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setBreaksProgress(self,val):
         self.breaks_progressBar.setValue(val)
+    def setTimeProgress(self,val):
+        self.time_progressBar.setValue(val)
     def addTarget(self):
         if(self.targetTitle_input.text().strip()!=""):
             TARGETS[0].append(self.targetTitle_input.text())
