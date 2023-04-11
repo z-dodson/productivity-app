@@ -10,28 +10,32 @@ from datetime import datetime
 from pynput.mouse import Controller
 
 
-# These may need editing
-SCREEN_BLANK_COMMAND = "xset dpms force off"
-def notify(title, message="...",t=5): os.system(f"notify-send \"{title}\" \"{message}\"")
-DIRECTORY = "./"
-######
+######## These may need editing ################################################################
+SCREEN_BLANK_COMMAND = "xset dpms force off"                                                 ###
+PAUSE_MEDIA_COMMAND = "playerctl pause"                                                      ###
+def notify(title, message="...",t=5): os.system(f"notify-send \"{title}\" \"{message}\"")    ###
+DIRECTORY = "./"                                                                             ###
+NOTIFY_TIME = 5                                                                              ###
+################################################################################################
+
+
+
 def screenBlankFunc(): os.system(SCREEN_BLANK_COMMAND)
 
 SEPERATOR = "<SEP>"
-NOTIFY_TIME = 5
 
 def screenBlank(timeperiod):
     if MainWindow.breaksOnOff.isChecked():
+        # Pausing media
+        if MainWindow.pauseMedia_checkBox.isChecked():
+            os.system(PAUSE_MEDIA_COMMAND)
         for _ in range(timeperiod*4):# so the screen has not time to recover
             os.system(SCREEN_BLANK_COMMAND) # 
             time.sleep(0.25)
         mouse = Controller()
         mouse.move(1, -1)
     else:
-        os.system(SCREEN_BLANK_COMMAND)
-        time.sleep(0.5)
-        mouse = Controller()
-        mouse.move(1, -1)
+        notify("Breaks are off", "Turn on breaks to use this feature")
 
 
 def loadFromFile():
@@ -64,21 +68,23 @@ def notifyTimings():
 class breaks:
     def __init__(self) -> None:
         with open(".breaks.txt","r") as f:
-            self.breakInterval, self.shortBreak, self.longBreak, self.longBreakFrquency = f.readline().split(SEPERATOR)
+            self.breakInterval, self.shortBreak, self.longBreak, self.longBreakFrquency, pause = f.readline().split(SEPERATOR)
             self.breakInterval = int(self.breakInterval)
             self.shortBreak = int(self.shortBreak)
             self.longBreak = int(self.longBreak)
             self.longBreakFrquency = int(self.longBreakFrquency)
+            self.pause = bool(int(pause))
         self.breaksThread = threading.Thread(target=self.breaks, args=(),daemon=True) # daemon measn it ends with program
         self.breaksThread.start()
-    def getTimmings(self): return self.shortBreak, self.longBreak, self.breakInterval, self.longBreakFrquency
-    def setTimmings(self,shortBreak,longBreak,breakInterval,longBreakFrquency):
+    def getTimmings(self): 
+        return self.shortBreak, self.longBreak, self.breakInterval, self.longBreakFrquency
+    def setTimmings(self,shortBreak,longBreak,breakInterval,longBreakFrquency, pause):
         self.shortBreak = shortBreak
         self.longBreak = longBreak
         self.breakInterval = breakInterval
         self.longBreakFrquency = longBreakFrquency
         with open(".breaks.txt","w") as f:
-            f.write(f"{self.breakInterval}{SEPERATOR}{self.shortBreak}{SEPERATOR}{self.longBreak}{SEPERATOR}{self.longBreakFrquency}")
+            f.write(f"{self.breakInterval}{SEPERATOR}{self.shortBreak}{SEPERATOR}{self.longBreak}{SEPERATOR}{self.longBreakFrquency}{SEPERATOR}{1 if pause else 0}")
     def reset(self): self.breaksIndexCounter = 0
     def breaks(self):
         self.running=True
@@ -110,7 +116,7 @@ class breaks:
 
 class MainWindow(QtWidgets.QMainWindow): 
     """Main Qt Window"""
-    def __init__(self, *args, **kwargs):
+    def __init__(self, pause, *args, **kwargs):
         #Initinalization scripts
         super().__init__(*args, **kwargs)
         uic.loadUi("MainWindow.ui", self)
@@ -126,6 +132,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDeadline_button.pressed.connect(self.addDeadlines)
         self.blankNow_button.pressed.connect(screenBlankFunc)
         self.recentLongBreak_button.pressed.connect(self.resetBreaks)
+        self.pauseMedia_checkBox.setChecked(pause)
         self.setBreaksProgress(0)
         
         # self.exit=QAction("Exit Application",shortcut=QKeySequence("Ctrl+q"),triggered=lambda:self.exit_app)
@@ -139,16 +146,16 @@ class MainWindow(QtWidgets.QMainWindow):
         with open("deadlines.txt","w") as _: pass
         self.displayDeadlines()
     def resetBreaks(self):
-        breaks.reset()
+        breaks_object.reset()
 
     def loadTimmings(self): 
-        a,b,c,d = breaks.getTimmings()
+        a,b,c,d = breaks_object.getTimmings()
         self.shortBreak_spinBox.setValue(a)
         self.longBreak_spinBox.setValue(b)
         self.breakInterval_spinBox.setValue(c)
         self.longBreakFrquency_spinBox.setValue(d)
     def setTimmings(self):
-        breaks.setTimmings(self.shortBreak_spinBox.value(),self.longBreak_spinBox.value(),self.breakInterval_spinBox.value(),self.longBreakFrquency_spinBox.value())
+        breaks_object.setTimmings(self.shortBreak_spinBox.value(),self.longBreak_spinBox.value(),self.breakInterval_spinBox.value(),self.longBreakFrquency_spinBox.value(), self.pauseMedia_checkBox.isChecked())
 
     def setBreaksProgress(self,val):
         self.breaks_progressBar.setValue(val)
@@ -205,13 +212,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
 if __name__=="__main__":
     os.chdir(DIRECTORY)
-    breaks = breaks()
+    breaks_object = breaks()
+    pause = breaks_object.pause
     TARGETS = [[],[],[]]#title, time, description
     DEADLINES = [[],[],[]]#title, date, description
     timmingsThread = threading.Thread(target=notifyTimings, args=(),daemon=True)
     timmingsThread.start()
     MainApp = QtWidgets.QApplication(sys.argv)
-    MainWindow = MainWindow()
+    MainWindow = MainWindow(pause)
     MainWindow.show()
     ret = MainApp.exec_()
     sys.exit(ret)
